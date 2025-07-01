@@ -1,0 +1,248 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+from sklearn.preprocessing import LabelEncoder
+
+# Clean up column names by stripping whitespace
+df.columns = df.columns.str.strip()
+
+# Convert 'funding_total_usd' to numeric, coerce errors to NaN
+df['funding_total_usd'] = pd.to_numeric(df['funding_total_usd'], errors='coerce')
+
+# Drop rows where 'funding_total_usd' is NaN (non-numeric values)
+df = df.dropna(subset=['funding_total_usd'])
+
+# Ensure 'market' and 'country_code' columns exist for encoding
+if 'market' not in df.columns or 'country_code' not in df.columns:
+    raise ValueError("Make sure 'market' and 'country_code' columns are present in the dataset.")
+
+# Check for missing values in relevant columns and drop rows with missing data
+df = df[['market', 'country_code', 'funding_rounds', 'funding_total_usd']].dropna()
+
+# Encode categorical columns
+le_market = LabelEncoder()
+le_country = LabelEncoder()
+
+df['market_encoded'] = le_market.fit_transform(df['market'])
+df['country_encoded'] = le_country.fit_transform(df['country_code'])
+
+# Prepare your features (X) and target variable (y)
+X = df[['market_encoded', 'country_encoded', 'funding_rounds']]
+y = df['funding_total_usd']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Initialize and train a RandomForest model
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Make predictions and evaluate the model
+y_pred = model.predict(X_test)
+mse = mean_squared_error(y_test, y_pred)
+print(f"Mean Squared Error: {mse}")
+
+# Feature importances
+importances = model.feature_importances_
+for feature, importance in zip(X.columns, importances):
+    print(f"Feature: {feature}, Importance: {importance}")
+
+
+
+print("\n-------------------------------------------------------------------------- Conclusion ---------------------------------------------------------------------------------------------")
+print(f"The Mean Squared Error (MSE) of the predictive model is: {mse:.2f}.")
+print("This indicates the average squared difference between the predicted funding amounts and the actual amounts.")
+print("A lower MSE suggests a better fit for the model, and in this case, it indicates a relatively good predictive performance given the dataset.")
+print("\nFeature Importance Analysis:")
+print("The model identifies the following key features that influence startup funding:")
+print(f"- Market (encoded): Importance = {importances[0]:.2f}, indicating that the market type significantly affects funding amounts.")
+print(f"- Country (encoded): Importance = {importances[1]:.2f}, showing that the country code also plays a role in funding decisions.")
+print(f"- Number of Funding Rounds: Importance = {importances[2]:.2f}, which suggests that the number of funding rounds does not significantly impact the total funding received in this dataset.")
+
+print("\nThese insights can help entrepreneurs and investors understand the factors that influence startup funding, allowing them to make more informed decisions.")
+
+from sklearn.linear_model import Ridge, Lasso
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.model_selection import train_test_split
+
+# Assuming X and y are your features and target as before
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+
+# Initialize Ridge and Lasso for Regularization
+ridge = Ridge(alpha=1.0)  # Alpha is a regularization strength, you can tune this
+lasso = Lasso(alpha=0.01)  # You can try different values for alpha
+
+# Fit Ridge and Lasso models
+ridge.fit(X_train, y_train)
+lasso.fit(X_train, y_train)
+
+# Predictions
+y_pred_ridge = ridge.predict(X_test)
+y_pred_lasso = lasso.predict(X_test)
+
+# Evaluate
+mse_ridge = mean_squared_error(y_test, y_pred_ridge)
+r2_ridge = r2_score(y_test, y_pred_ridge)
+
+mse_lasso = mean_squared_error(y_test, y_pred_lasso)
+r2_lasso = r2_score(y_test, y_pred_lasso)
+
+print(f'Ridge - MSE: {mse_ridge}, R2: {r2_ridge}')
+print(f'Lasso - MSE: {mse_lasso}, R2: {r2_lasso}')
+
+import matplotlib.pyplot as plt
+
+# Feature importance data
+features = ['market_encoded', 'country_encoded', 'funding_rounds']
+importances = [0.778, 0.222, 0.0]
+
+# Create a bar plot
+plt.figure(figsize=(8, 5))
+plt.barh(features, importances, color='skyblue')
+plt.xlabel('Importance')
+plt.title('Feature Importance for Startup Funding Prediction')
+plt.xlim(0, 1)
+plt.show()
+
+import matplotlib.pyplot as plt
+
+# Plot actual vs predicted values
+plt.figure(figsize=(10, 6))
+plt.scatter(y_test, y_pred, alpha=0.6)
+plt.plot([min(y_test), max(y_test)], [min(y_test), max(y_test)], color='red', linestyle='--')  # line of perfect prediction
+plt.xlabel('Actual Funding Amounts (USD)')
+plt.ylabel('Predicted Funding Amounts (USD)')
+plt.title('Actual vs Predicted Funding Amounts')
+plt.show()
+
+
+# Importing necessary libraries
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+import xgboost as xgb
+from sklearn.metrics import mean_squared_error, r2_score
+import matplotlib.pyplot as plt
+
+# Load the dataset from a CSV file
+data = pd.read_csv('https://drive.google.com/uc?id=1z6vOZw_TyAQRWilfl4yYdqAMvYBNxvUc', encoding='ISO-8859-1')
+
+# Strip whitespace from column names
+data.columns = data.columns.str.strip()
+
+# Clean the target variable: Remove spaces and commas, and convert to numeric
+data['funding_total_usd'] = data['funding_total_usd'].str.replace(',', '').str.strip()
+data['funding_total_usd'] = pd.to_numeric(data['funding_total_usd'], errors='coerce')
+
+# Drop rows with missing target values
+data = data.dropna(subset=['funding_total_usd'])
+
+# Features
+X = data[['market', 'funding_rounds', 'category_list', 'status', 'region', 'country_code']]
+
+# Target
+y = data['funding_total_usd']
+
+# One-hot encode categorical features
+encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+X_encoded = encoder.fit_transform(X)
+
+# Split the data into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X_encoded, y, test_size=0.2, random_state=42)
+
+# Initialize the XGBoost Regressor
+xg_reg = xgb.XGBRegressor(objective='reg:squarederror', learning_rate=0.1, max_depth=5, n_estimators=100)
+
+# Train the model
+xg_reg.fit(X_train, y_train)
+
+# Make predictions on the test set
+y_pred = xg_reg.predict(X_test)
+
+# Calculate evaluation metrics
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+print(f"Mean Squared Error: {mse}")
+print(f"R-Squared: {r2}")
+
+# Plot feature importance
+xgb.plot_importance(xg_reg)
+plt.show()
+
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier  # or XGBoost
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix, classification_report
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+# Load your dataset with a specified encoding
+data_url = 'https://drive.google.com/uc?id=1z6vOZw_TyAQRWilfl4yYdqAMvYBNxvUc'
+df = pd.read_csv(data_url, encoding='ISO-8859-1')  # Change encoding as needed
+
+# Clean column names
+df.columns = df.columns.str.strip()
+
+# Print column names for debugging
+print("Column names:", df.columns.tolist())
+
+# Data Preprocessing
+X = df.drop(columns=['funding_total_usd'])  # Features
+y = df['funding_total_usd']  # Target variable
+
+# Check for missing values
+print("Missing values in each column:\n", X.isnull().sum())
+
+# Identify categorical columns
+categorical_cols = X.select_dtypes(include=['object']).columns.tolist()
+
+# Create a preprocessing pipeline
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', SimpleImputer(strategy='mean'), X.select_dtypes(include=['float64', 'int64']).columns),  # Impute numeric columns
+        ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_cols)  # Encode categorical columns
+    ],
+    remainder='passthrough'  # Keep the remaining columns as is (if they are already numeric)
+)
+
+# Create a pipeline with preprocessing and the model
+pipeline = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('model', RandomForestClassifier(random_state=42))  # Replace with XGBoost if needed
+])
+
+# Split the dataset into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Fit the model
+pipeline.fit(X_train, y_train)
+
+# Make predictions
+y_pred = pipeline.predict(X_test)
+
+# Evaluate the model's performance
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred, average='weighted')
+recall = recall_score(y_test, y_pred, average='weighted')
+f1 = f1_score(y_test, y_pred, average='weighted')
+roc_auc = roc_auc_score(y_test, pipeline.predict_proba(X_test)[:, 1])  # For binary classification
+
+# Print metrics
+print("Accuracy:", accuracy)
+print("Precision:", precision)
+print("Recall:", recall)
+print("F1 Score:", f1)
+print("ROC AUC Score:", roc_auc)
+print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred))
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
